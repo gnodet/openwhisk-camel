@@ -1,0 +1,79 @@
+= Feed Action
+
+This feed action is responsible for creating the JMS Feed listener and associating it with a Trigger
+
+[[pre-req]]
+= Pre-requisite
+
+* Deploy https://github.com/kameshsampath/openwhisk-openshift#installing-on-minishift[OpenWhisk on Minishift]
+
+[IMPORTANT]
+====
+* For all the CLI commands to work as it is, deploy OpenWhisk to a OpenShift Project
+called `openwhisk`
+====
+
+== Build and Deploy
+
+[[create-package]]
+=== Create Package
+
+[code,sh]
+----
+wsk -i package create --shared yes redhatdevelopers <1>
+----
+
+<1> this could be anything, if you change it please update link:./pom.xml[pom.xml] `openwhisk.package`
+property
+
+[[create-feed-action]]
+=== Create Feed Action
+[code,sh]
+----
+mvn clean package <1>
+
+wsk action update -a feed true \
+  --main org.jboss.fuse.openwhisk.camel.CamelFeedAction \
+  redhatdevelopers/camel-feed \
+  camel-feed-action/target/camel-feed-action-*.jar
+----
+<1> if you have https://github.com/apache/incubator-openwhisk-cli[WSK CLI] installed, post package
+
+
+[[create-trigger]]
+=== Create Trigger
+
+==== Create Trigger, Action and Rule
+
+[code,sh]
+----
+wsk trigger create camelTrigger \
+  --feed redhatdevelopers/camel-feed \
+  -p mapping '{ date: \"header[CamelTimerFiredTime]\", counter: \"header[CamelTimerCounter]\" }' \
+  -p routeUrl 'timer://foo?fixedRate=true&period=10000'
+
+wsk action create camelTriggerAction camel-feed-action/src/handler.js
+
+wsk rule create camelEntryRule camelTrigger camelTriggerAction
+----
+
+<1> Create a camel route
+<4> Create a dummy action just to see what parameters are sent via the event source
+<5> Associate the Trigger with Action via a rule
+
+[TIP]
+====
+* Whenever you delete and recreate trigger, you need to enable the rule via
+  `wsk -i rule enable cacheEntryRule`.  As deleting trigger will disable any
+  active rules associated with it
+====
+
+=== Testing Application
+
+[code,sh]
+----
+wsk activation list --limit 1 camelTriggerAction <1>
+wsk activation result <activation-id> <2>
+----
+<1> Check if the camelTriggerAction action is triggered as a result of cache entry addition
+<2> Check what payload the camelTriggerAction  has recevied
