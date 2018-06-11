@@ -23,12 +23,13 @@ public class OpenWhiskAPIService {
     String nginxHost;
     @Value("${NGINX_SERVICE_PORT}")
     String nginxPort;
-
-
-    TriggerDataService triggerDataService;
-    RestTemplate restTemplate;
+    @Value("${NAMESPACE}")
+    String namespace = "_";
 
     private final Logger log = LoggerFactory.getLogger(OpenWhiskAPIService.class);
+
+    private final TriggerDataService triggerDataService;
+    private final RestTemplate restTemplate;
 
     @Autowired
     public OpenWhiskAPIService(TriggerDataService triggerDataService, RestTemplate restTemplate) {
@@ -56,7 +57,7 @@ public class OpenWhiskAPIService {
 
             HttpEntity<Map<String, String>> requestEntity = new HttpEntity<>(payload, httpHeaders);
 
-            String uri = "http://" + nginxHost + ":" + nginxPort + "/api/v1/namespaces/_/triggers/{trigger}";
+            String uri = "http://" + nginxHost + ":" + nginxPort + "/api/v1/namespaces/" + namespace + "/triggers/{trigger}";
             ResponseEntity<String> response = restTemplate.exchange(uri,
                     HttpMethod.POST, requestEntity, String.class, triggerName);
 
