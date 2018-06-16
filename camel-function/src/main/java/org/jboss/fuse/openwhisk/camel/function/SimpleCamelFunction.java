@@ -7,28 +7,31 @@ import java.util.Map;
 
 import com.google.gson.JsonObject;
 import org.apache.camel.Exchange;
-import static org.apache.camel.builder.Builder.body;
+import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.bean.BeanProcessor;
 import org.apache.camel.impl.DefaultExchange;
-import org.apache.camel.model.RouteDefinition;
 
 public class SimpleCamelFunction extends CamelFunction {
 
-    @Override
-    protected void configure(RouteDefinition from) {
-        from
-                .transform(this::extractMessage)
-                .setHeader(MyOrderService.class.getName(), MyOrderService::new)
-                .split(body().tokenize("@"), this::aggregate)
-                // each splitted message is then send to this bean where we can process it
-                .process(e -> stateless(e, "handleOrder"))
-                // this is important to end the splitter route as we do not want to do more routing
-                // on each splitted message
-                .end()
-                // after we have splitted and handled each message we want to send a single combined
-                // response back to the original caller, so we let this bean build it for us
-                // this bean will receive the result of the aggregate strategy: MyOrderStrategy
-                .process(e -> stateless(e, "buildCombinedResponse"));
+    public SimpleCamelFunction() {
+        addRouteBuilder(new RouteBuilder() {
+            @Override
+            public void configure() {
+                from(INPUT_ENDPOINT_URI)
+                        .transform(SimpleCamelFunction.this::extractMessage)
+                        .setHeader(MyOrderService.class.getName(), MyOrderService::new)
+                        .split(body().tokenize("@"), SimpleCamelFunction.this::aggregate)
+                        // each splitted message is then send to this bean where we can process it
+                        .process(e -> stateless(e, "handleOrder"))
+                        // this is important to end the splitter route as we do not want to do more routing
+                        // on each splitted message
+                        .end()
+                        // after we have splitted and handled each message we want to send a single combined
+                        // response back to the original caller, so we let this bean build it for us
+                        // this bean will receive the result of the aggregate strategy: MyOrderStrategy
+                        .process(e -> stateless(e, "buildCombinedResponse"));
+            }
+        });
     }
 
     public <T> T extractMessage(Exchange exchange, Class<T> type) {
@@ -43,7 +46,7 @@ public class SimpleCamelFunction extends CamelFunction {
             orders = (List) oldExchange.getIn().getBody();
         } else {
             orders = new ArrayList<>();
-            oldExchange = new DefaultExchange(getContext());
+            oldExchange = new DefaultExchange(newExchange.getContext());
             oldExchange.getIn().copyFromWithNewBody(newExchange.getIn(), orders);
         }
         String newLine = newExchange.getIn().getBody(String.class);
@@ -59,7 +62,7 @@ public class SimpleCamelFunction extends CamelFunction {
     }
 
     private void stateless(Exchange exchange, String method) throws Exception {
-        BeanProcessor bp = new BeanProcessor(exchange.getIn().getHeader(MyOrderService.class.getName()), getContext());
+        BeanProcessor bp = new BeanProcessor(exchange.getIn().getHeader(MyOrderService.class.getName()), getCamelContext());
         bp.setMethod(method);
         bp.process(exchange);
     }

@@ -1,12 +1,11 @@
 import com.google.gson.JsonObject;
-import org.jboss.fuse.openwhisk.camel.function.SimpleCamelFunction;
 import org.jboss.fuse.openwhisk.camel.function.SimpleCamelFunctionExecutor;
 import org.junit.Test;
 
 public class SimpleCamelFunctionTest {
 
     @Test
-    public void testSimpleCamelFunction() {
+    public void testSimpleCamelFunction() throws Exception {
         JsonObject in = new JsonObject();
         in.addProperty("message", "foo@bar@baz");
         JsonObject out = SimpleCamelFunctionExecutor.main(in);
