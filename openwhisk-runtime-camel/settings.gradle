@@ -1,0 +1,11 @@
+include 'tests'
+
+include 'core:camelAction'
+include 'core:camelAction:proxy'
+
+rootProject.name = 'runtime-camel'
+
+gradle.ext.openwhisk = [
+        version: '1.0.0-SNAPSHOT'
+]
+

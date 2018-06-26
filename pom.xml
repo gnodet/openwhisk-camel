@@ -20,9 +20,16 @@
         <fabric8.openshift.trimImageInContainerSpec>true</fabric8.openshift.trimImageInContainerSpec>
         <spring-boot.version>1.5.12.RELEASE</spring-boot.version>
         <spring.version>4.3.16.RELEASE</spring.version>
-        <camel.version>2.21.1</camel.version>
+        <camel.version>2.22.0-45401f1b1e5</camel.version>
         <feign.version>9.5.0</feign.version>
     </properties>
+
+    <repositories>
+        <repository>
+            <id>gnodet</id>
+            <url>http://people.apache.org/~gnodet/repo/</url>
+        </repository>
+    </repositories>
 
     <dependencyManagement>
         <dependencies>
