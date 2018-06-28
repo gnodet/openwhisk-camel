@@ -38,6 +38,8 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.*;
+import openwhisk.camel.action.function.*;
 
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
@@ -56,6 +58,10 @@ public class Proxy {
         this.server.createContext("/init", new InitHandler());
         this.server.createContext("/run", new RunHandler());
         this.server.setExecutor(null); // creates a default executor
+    }
+
+    public void setExecutor(Executor executor) {
+        server.setExecutor(executor);
     }
 
     public void start() {
@@ -196,7 +202,32 @@ public class Proxy {
     }
 
     public static void main(String args[]) throws Exception {
-        Proxy proxy = new Proxy(8080);
-        proxy.start();
+        if (args.length == 1 && "test".equals(args[0])) {
+            Executor executor = Executors.newCachedThreadPool(new ThreadFactory() {
+                @Override
+                public Thread newThread(Runnable r) {
+                    Thread th = new Thread(r);
+                    th.setDaemon(true);
+                    return th;
+                }
+            });
+            Proxy proxy = new Proxy(8080);
+            proxy.start();
+            CamelFunction function = new CamelFunction();
+            function.addRouteBuilder(new CamelFunctionRouteBuilder() {
+                @Override
+                public void configure() {
+                    from(CamelFunctionRouteBuilder.INPUT_ENDPOINT_URI)
+                            .setBody(constant(Collections.<String, Object>emptyMap()));
+                }
+            });
+            function.start();
+            function.execute(Collections.<String, Object>emptyMap(), Collections.<String, Object>emptyMap());
+            System.out.println("OK !");
+            System.exit(0);
+        } else {
+            Proxy proxy = new Proxy(8080);
+            proxy.start();
+        }
     }
 }
