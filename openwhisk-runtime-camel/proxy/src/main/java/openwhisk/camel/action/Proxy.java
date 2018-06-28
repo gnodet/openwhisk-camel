@@ -18,15 +18,12 @@
 package openwhisk.camel.action;
 
 import java.io.BufferedReader;
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.Reader;
-import java.io.StringReader;
 import java.io.StringWriter;
-import java.lang.reflect.InvocationTargetException;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -34,23 +31,29 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.Base64;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
-import java.util.concurrent.*;
-import openwhisk.camel.action.function.*;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
 
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
+import openwhisk.camel.action.function.CamelFunction;
+import openwhisk.camel.action.function.CamelFunctionRouteBuilder;
 import openwhisk.camel.action.json.JsonReader;
 import openwhisk.camel.action.json.JsonWriter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class Proxy {
     private HttpServer server;
 
     private JarLoader loader = null;
+
+    private Logger log = LoggerFactory.getLogger(Proxy.class);
 
     public Proxy(int port) throws IOException {
         this.server = HttpServer.create(new InetSocketAddress(port), -1);
@@ -66,6 +69,7 @@ public class Proxy {
 
     public void start() {
         server.start();
+        log.info("Server started on {}", server.getAddress());
     }
 
     private static void writeResponse(HttpExchange t, int code, String content) throws IOException {
@@ -84,6 +88,7 @@ public class Proxy {
 
     private class InitHandler implements HttpHandler {
         public void handle(HttpExchange t) throws IOException {
+            log.info("Initialize");
             if (loader != null) {
                 Proxy.writeError(t, "Cannot initialize the action more than once.");
                 return;

@@ -28,12 +28,18 @@ ENV LANG="en_US.UTF-8" \
 	UPDATE=162 \
 	BUILD=12
 
-ADD proxy /camelAction
+ADD proxy /opt/jboss/camelAction
 
-RUN cd /camelAction \
-	&& rm -rf .classpath .gitignore .gradle .project .settings Dockerfile build \
+RUN cd /opt/jboss/camelAction \
 	&& ./gradlew oneJar \
-	&& ./compileClassCache.sh \
-	&& rm -rf src .gradle /root/.gradle build.gradle compileClassCache.sh gradle gradlew gradlew.bat
+	&& mv build/libs/camelAction-all.jar .. \
+	&& cd / \
+	&& rm -Rf /opt/jboss/camelAction \
+	&& mkdir /opt/jboss/javaSharedCache
 
-CMD ["java", "-Dfile.encoding=UTF-8", "-Xshareclasses:cacheDir=/javaSharedCache,readonly", "-Xquickstart", "-jar", "/camelAction/build/libs/camelAction-all.jar"]
+RUN chgrp -R 0 /opt/jboss \
+      && chmod -R g+rwX /opt/jboss
+
+RUN java -Dfile.encoding=UTF-8 -Xshareclasses:cacheDir=/opt/jboss/javaSharedCache -Xquickstart -jar /opt/jboss/camelAction-all.jar test
+
+CMD ["java", "-Dfile.encoding=UTF-8", "-Xshareclasses:cacheDir=/opt/jboss//javaSharedCache,readonly", "-Xquickstart", "-jar", "/opt/jboss/camelAction-all.jar"]
