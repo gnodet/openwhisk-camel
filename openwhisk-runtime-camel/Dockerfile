@@ -33,7 +33,7 @@ ADD proxy /camelAction
 RUN cd /camelAction \
 	&& rm -rf .classpath .gitignore .gradle .project .settings Dockerfile build \
 	&& ./gradlew oneJar \
-	&& rm -rf /camelAction/src \
-	&& ./compileClassCache.sh
+	&& ./compileClassCache.sh \
+	&& rm -rf src .gradle /root/.gradle build.gradle compileClassCache.sh gradle gradlew gradlew.bat
 
 CMD ["java", "-Dfile.encoding=UTF-8", "-Xshareclasses:cacheDir=/javaSharedCache,readonly", "-Xquickstart", "-jar", "/camelAction/build/libs/camelAction-all.jar"]
